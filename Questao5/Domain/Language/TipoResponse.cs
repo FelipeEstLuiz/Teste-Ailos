@@ -5,6 +5,7 @@
         INVALID_ACCOUNT,
         INACTIVE_ACCOUNT,
         INVALID_VALUE,
-        INVALID_TYPE
+        INVALID_TYPE,
+        INTERNAL_ERROR
     }
 }

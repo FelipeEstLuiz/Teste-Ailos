@@ -10,19 +10,17 @@ namespace Questao5.Application.Handlers
 {
     public class ConsultaSaldoHandler : IRequestHandler<ConsultaSaldoQuery, Result<ConsultaSaldoResponse>>
     {
-        private readonly IConsultaSaldoRepository _consultaSaldoRepository;
+        private readonly IContaBancariaRepository _contaBancariaRepository;
 
-        public ConsultaSaldoHandler(IConsultaSaldoRepository consultaSaldoRepository)
-        {
-            _consultaSaldoRepository = consultaSaldoRepository;
-        }
+        public ConsultaSaldoHandler(IContaBancariaRepository contaBancariaRepository)
+            => _contaBancariaRepository = contaBancariaRepository;
 
         public async Task<Result<ConsultaSaldoResponse>> Handle(
             ConsultaSaldoQuery request,
             CancellationToken cancellationToken
         )
         {
-            ContaCorrenteResponse conta = await _consultaSaldoRepository
+            ContaCorrenteResponse conta = await _contaBancariaRepository
                 .GetContaCorrenteAsync(new ContaCorrenteRequest(request.Numero));
 
             if (conta is null)
@@ -32,10 +30,10 @@ namespace Questao5.Application.Handlers
 
             ConsultaSaldoResponse consultaSaldoResponse = new(conta.Numero, conta.Nome);
 
-            IEnumerable<MovimentoResponse> creditos = await _consultaSaldoRepository
+            IEnumerable<MovimentoResponse> creditos = await _contaBancariaRepository
                 .GetMovimentacoesAsync(new MovimentoRequest(conta.Idcontacorrente, "C"));
 
-            IEnumerable<MovimentoResponse> debitos = await _consultaSaldoRepository
+            IEnumerable<MovimentoResponse> debitos = await _contaBancariaRepository
                 .GetMovimentacoesAsync(new MovimentoRequest(conta.Idcontacorrente, "D"));
 
             decimal somaCreditos = creditos?.Sum(v => v.Valor) ?? 0;
