@@ -22,9 +22,5 @@
 
         public static Result<T> Success(T data) => new(data);
         public static Result<T> Failure(string message, TipoResponse tipo) => new(message, tipo);
-
-        public static explicit operator Result<T>(T data) => new(data);
-
-        public static explicit operator Result<T>((string, TipoResponse) error) => new(error.Item1, error.Item2);
     }
 }

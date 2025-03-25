@@ -17,8 +17,8 @@ namespace Questao5.Infrastructure.Services.Controllers
             _mediator = mediator;
         }
 
-        [HttpGet("saldo/{numeroConta:int}")]
-        public async Task<IActionResult> ConsultarSaldo(int numeroConta)
+        [HttpGet("saldo/{numeroConta:long}")]
+        public async Task<IActionResult> ConsultarSaldo(long numeroConta)
         {
             Result<ConsultaSaldoResponse> response = await _mediator.Send(new ConsultaSaldoQuery(numeroConta));
 

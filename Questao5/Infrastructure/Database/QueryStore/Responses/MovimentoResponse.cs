@@ -1,6 +1,6 @@
-﻿namespace Questao5.Domain.Entities
+﻿namespace Questao5.Infrastructure.Database.QueryStore.Responses
 {
-    public class Movimento
+    public class MovimentoResponse
     {
         public string Idmovimento { get; set; }
         public string IdContaCorrente { get; set; }

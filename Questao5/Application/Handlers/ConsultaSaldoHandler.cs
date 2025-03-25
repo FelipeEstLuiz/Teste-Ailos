@@ -1,0 +1,49 @@
+﻿using MediatR;
+using Questao5.Application.Queries.Requests;
+using Questao5.Application.Queries.Responses;
+using Questao5.Domain.Language;
+using Questao5.Infrastructure.Database;
+using Questao5.Infrastructure.Database.QueryStore.Requests;
+using Questao5.Infrastructure.Database.QueryStore.Responses;
+
+namespace Questao5.Application.Handlers
+{
+    public class ConsultaSaldoHandler : IRequestHandler<ConsultaSaldoQuery, Result<ConsultaSaldoResponse>>
+    {
+        private readonly IConsultaSaldoRepository _consultaSaldoRepository;
+
+        public ConsultaSaldoHandler(IConsultaSaldoRepository consultaSaldoRepository)
+        {
+            _consultaSaldoRepository = consultaSaldoRepository;
+        }
+
+        public async Task<Result<ConsultaSaldoResponse>> Handle(
+            ConsultaSaldoQuery request,
+            CancellationToken cancellationToken
+        )
+        {
+            ContaCorrenteResponse conta = await _consultaSaldoRepository
+                .GetContaCorrenteAsync(new ContaCorrenteRequest(request.Numero));
+
+            if (conta is null)
+                return Result<ConsultaSaldoResponse>.Failure("Conta nao cadastrada", TipoResponse.INVALID_ACCOUNT);
+            else if (!conta.ContaAtiva)
+                return Result<ConsultaSaldoResponse>.Failure("Conta inativa", TipoResponse.INACTIVE_ACCOUNT);
+
+            ConsultaSaldoResponse consultaSaldoResponse = new(conta.Numero, conta.Nome);
+
+            IEnumerable<MovimentoResponse> creditos = await _consultaSaldoRepository
+                .GetMovimentacoesAsync(new MovimentoRequest(conta.Idcontacorrente, "C"));
+
+            IEnumerable<MovimentoResponse> debitos = await _consultaSaldoRepository
+                .GetMovimentacoesAsync(new MovimentoRequest(conta.Idcontacorrente, "D"));
+
+            decimal somaCreditos = creditos?.Sum(v => v.Valor) ?? 0;
+            decimal somaDebitos = debitos?.Sum(v => v.Valor) ?? 0;
+
+            consultaSaldoResponse.AtualizarSaldo(somaCreditos - somaDebitos);
+
+            return Result<ConsultaSaldoResponse>.Success(consultaSaldoResponse);
+        }
+    }
+}

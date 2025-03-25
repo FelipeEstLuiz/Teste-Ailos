@@ -6,11 +6,11 @@ namespace Questao5.Application.Queries.Requests
 {
     public class ConsultaSaldoQuery : IRequest<Result<ConsultaSaldoResponse>>
     {
-        public ConsultaSaldoQuery(int numero)
+        public ConsultaSaldoQuery(long numero)
         {
             Numero = numero;
         }
 
-        public int Numero { get; private set; }
+        public long Numero { get; private set; }
     }
 }
