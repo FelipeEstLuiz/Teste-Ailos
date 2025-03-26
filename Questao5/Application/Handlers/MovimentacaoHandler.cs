@@ -29,18 +29,18 @@ namespace Questao5.Application.Handlers
             else if (request.Valor <= 0)
                 return Result<string>.Failure("Valor deve ser maior que 0", TipoResponse.INVALID_VALUE);
 
-            ContaCorrenteResponse conta = await _contaBancariaRepository
-                .GetContaCorrenteAsync(new ContaCorrenteRequest(request.Numero));
+            ContaCorrenteResponse? conta = await _contaBancariaRepository
+                .GetContaCorrenteAsync(new ContaCorrenteRequest(request.Numero), cancellationToken: cancellationToken);
 
             if (conta is null)
                 return Result<string>.Failure("Conta nao cadastrada", TipoResponse.INVALID_ACCOUNT);
             else if (!conta.ContaAtiva)
                 return Result<string>.Failure("Conta inativa", TipoResponse.INACTIVE_ACCOUNT);
 
-            IdempotenciaResponse movimentacao = await _contaBancariaRepository
+            IdempotenciaResponse? movimentacao = await _contaBancariaRepository
                 .GetImpotenciaAsync(new IdempotenciaRequest(
                     request.IdentificacaoRequisiacao
-                ));
+                ), cancellationToken: cancellationToken);
 
             InserirMovimentacaoResponse idempotencia;
 
@@ -52,12 +52,16 @@ namespace Questao5.Application.Handlers
                         idcontacorrente: conta.Idcontacorrente,
                         tipoMovimento: request.TipoMovimento,
                         valor: request.Valor
-                    ));
+                    ), cancellationToken: cancellationToken);
             }
             else
-                idempotencia = JsonConvert.DeserializeObject<InserirMovimentacaoResponse>(movimentacao.resultado);
+#pragma warning disable CS8600
+                idempotencia = JsonConvert.DeserializeObject<InserirMovimentacaoResponse?>(movimentacao.resultado);
+#pragma warning restore CS8600
 
+#pragma warning disable CS8602
             return Result<string>.Success(idempotencia.IdMovimento);
+#pragma warning restore CS8602
         }
     }
 }

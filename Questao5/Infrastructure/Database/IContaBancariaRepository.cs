@@ -7,9 +7,21 @@ namespace Questao5.Infrastructure.Database
 {
     public interface IContaBancariaRepository
     {
-        Task<ContaCorrenteResponse> GetContaCorrenteAsync(ContaCorrenteRequest request);
-        Task<IEnumerable<MovimentoResponse>> GetMovimentacoesAsync(MovimentoRequest request);
-        Task<IdempotenciaResponse> GetImpotenciaAsync(IdempotenciaRequest request);
-        Task<InserirMovimentacaoResponse> InserirMovimentacaoAsync(InserirMovimentacaoRequest request);
+        Task<ContaCorrenteResponse?> GetContaCorrenteAsync(
+            ContaCorrenteRequest request, 
+            CancellationToken cancellationToken
+        );
+        Task<IEnumerable<MovimentoResponse>> GetMovimentacoesAsync(
+            MovimentoRequest request,
+            CancellationToken cancellationToken
+        );
+        Task<IdempotenciaResponse?> GetImpotenciaAsync(
+            IdempotenciaRequest request, 
+            CancellationToken cancellationToken
+        );
+        Task<InserirMovimentacaoResponse> InserirMovimentacaoAsync(
+            InserirMovimentacaoRequest request, 
+            CancellationToken cancellationToken
+        );
     }
 }

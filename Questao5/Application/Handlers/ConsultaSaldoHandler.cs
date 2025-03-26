@@ -10,10 +10,17 @@ namespace Questao5.Application.Handlers
 {
     public class ConsultaSaldoHandler : IRequestHandler<ConsultaSaldoQuery, Result<ConsultaSaldoResponse>>
     {
+        private readonly IObterSaldoUseCase _obterSaldoUseCase;
         private readonly IContaBancariaRepository _contaBancariaRepository;
 
-        public ConsultaSaldoHandler(IContaBancariaRepository contaBancariaRepository)
-            => _contaBancariaRepository = contaBancariaRepository;
+        public ConsultaSaldoHandler(
+            IContaBancariaRepository contaBancariaRepository,
+            IObterSaldoUseCase obterSaldoUseCase
+        )
+        {
+            _obterSaldoUseCase = obterSaldoUseCase;
+            _contaBancariaRepository = contaBancariaRepository;
+        }
 
         public async Task<Result<ConsultaSaldoResponse>> Handle(
             ConsultaSaldoQuery request,
@@ -21,25 +28,21 @@ namespace Questao5.Application.Handlers
         )
         {
             ContaCorrenteResponse conta = await _contaBancariaRepository
-                .GetContaCorrenteAsync(new ContaCorrenteRequest(request.Numero));
+                .GetContaCorrenteAsync(new ContaCorrenteRequest(request.Numero), cancellationToken: cancellationToken);
 
             if (conta is null)
-                return Result<ConsultaSaldoResponse>.Failure("Conta nao cadastrada", TipoResponse.INVALID_ACCOUNT);
+                return Result<ConsultaSaldoResponse>.Failure("Conta não cadastrada", TipoResponse.INVALID_ACCOUNT);
             else if (!conta.ContaAtiva)
                 return Result<ConsultaSaldoResponse>.Failure("Conta inativa", TipoResponse.INACTIVE_ACCOUNT);
 
             ConsultaSaldoResponse consultaSaldoResponse = new(conta.Numero, conta.Nome);
 
-            IEnumerable<MovimentoResponse> creditos = await _contaBancariaRepository
-                .GetMovimentacoesAsync(new MovimentoRequest(conta.Idcontacorrente, "C"));
+            decimal saldo = await _obterSaldoUseCase.GetSaldoContaCorrenteAsync(
+                conta.Idcontacorrente,
+                cancellationToken
+            );
 
-            IEnumerable<MovimentoResponse> debitos = await _contaBancariaRepository
-                .GetMovimentacoesAsync(new MovimentoRequest(conta.Idcontacorrente, "D"));
-
-            decimal somaCreditos = creditos?.Sum(v => v.Valor) ?? 0;
-            decimal somaDebitos = debitos?.Sum(v => v.Valor) ?? 0;
-
-            consultaSaldoResponse.AtualizarSaldo(somaCreditos - somaDebitos);
+            consultaSaldoResponse.AtualizarSaldo(saldo);
 
             return Result<ConsultaSaldoResponse>.Success(consultaSaldoResponse);
         }

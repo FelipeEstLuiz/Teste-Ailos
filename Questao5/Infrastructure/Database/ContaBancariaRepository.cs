@@ -16,36 +16,45 @@ namespace Questao5.Infrastructure.Database
 
         public ContaBancariaRepository(DatabaseConfig databaseConfig) => _databaseConfig = databaseConfig;
 
-        public async Task<ContaCorrenteResponse> GetContaCorrenteAsync(ContaCorrenteRequest request)
+        public async Task<ContaCorrenteResponse?> GetContaCorrenteAsync(
+            ContaCorrenteRequest request,
+            CancellationToken cancellationToken
+        )
         {
             using SqliteConnection connection = new(_databaseConfig.Name);
-            return await connection.QueryFirstOrDefaultAsync<ContaCorrenteResponse>(@"
+            return await connection.QueryFirstOrDefaultAsync<ContaCorrenteResponse?>(new CommandDefinition(@"
                 SELECT idcontacorrente, numero, nome, ativo
                 FROM contacorrente 
                 WHERE numero = @Numero
             ", new
             {
                 request.Numero
-            });
+            }, cancellationToken: cancellationToken));
         }
 
-        public async Task<IdempotenciaResponse> GetImpotenciaAsync(IdempotenciaRequest request)
+        public async Task<IdempotenciaResponse?> GetImpotenciaAsync(
+            IdempotenciaRequest request,
+            CancellationToken cancellationToken
+        )
         {
             using SqliteConnection connection = new(_databaseConfig.Name);
-            return await connection.QueryFirstOrDefaultAsync<IdempotenciaResponse>(@"
+            return await connection.QueryFirstOrDefaultAsync<IdempotenciaResponse?>(new CommandDefinition(@"
                 SELECT chave_idempotencia, requisicao, resultado
                 FROM idempotencia 
                 WHERE chave_idempotencia = @chave_idempotencia
             ", new
             {
                 chave_idempotencia = request.IdentificacaoRequisiacao
-            });
+            }, cancellationToken: cancellationToken));
         }
 
-        public async Task<IEnumerable<MovimentoResponse>> GetMovimentacoesAsync(MovimentoRequest request)
+        public async Task<IEnumerable<MovimentoResponse>> GetMovimentacoesAsync(
+            MovimentoRequest request,
+            CancellationToken cancellationToken
+        )
         {
             using SqliteConnection connection = new(_databaseConfig.Name);
-            return await connection.QueryAsync<MovimentoResponse>(@"
+            return await connection.QueryAsync<MovimentoResponse>(new CommandDefinition(@"
                 SELECT idmovimento, idContaCorrente, datamovimento, tipomovimento, valor
                 FROM movimento
                 WHERE idContaCorrente = @IdContaCorrente
@@ -54,17 +63,20 @@ namespace Questao5.Infrastructure.Database
             {
                 request.IdContaCorrente,
                 request.TipoMovimento
-            });
+            }, cancellationToken: cancellationToken));
         }
 
-        public async Task<InserirMovimentacaoResponse> InserirMovimentacaoAsync(InserirMovimentacaoRequest request)
+        public async Task<InserirMovimentacaoResponse> InserirMovimentacaoAsync(
+            InserirMovimentacaoRequest request,
+            CancellationToken cancellationToken
+        )
         {
             using SqliteConnection connection = new(_databaseConfig.Name);
 
             if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
+                await connection.OpenAsync(cancellationToken);
 
-            using IDbTransaction transaction = await connection.BeginTransactionAsync();
+            using IDbTransaction transaction = await connection.BeginTransactionAsync(cancellationToken);
             try
             {
                 string idMovimento = Guid.NewGuid().ToString();
@@ -75,7 +87,7 @@ namespace Questao5.Infrastructure.Database
                     VALUES (@IdMovimento, @IdContaCorrente, @DataMovimento, @TipoMovimento, @Valor)
                 ";
 
-                InserirMovimentacaoResponse response = new ()
+                InserirMovimentacaoResponse response = new()
                 {
                     IdMovimento = idMovimento,
                     IdentificacaoRequisiacao = request.IdentificacaoRequisiacao,
@@ -84,16 +96,18 @@ namespace Questao5.Infrastructure.Database
                     Valor = request.Valor
                 };
 
-                await connection.ExecuteAsync(query, new
+                await connection.ExecuteAsync(new CommandDefinition(query, new
                 {
                     IdMovimento = idMovimento,
                     IdContaCorrente = request.Idcontacorrente,
                     DataMovimento = dataMovimento,
                     request.TipoMovimento,
                     request.Valor
-                }, transaction: transaction);
+                },
+                transaction: transaction,
+                cancellationToken: cancellationToken));
 
-                await connection.ExecuteAsync(@"
+                await connection.ExecuteAsync(new CommandDefinition(@"
                     INSERT INTO idempotencia (chave_idempotencia, requisicao, resultado)
                     VALUES (@ChaveIdempotencia, @Requisicao, @Resultado)
                 ", new
@@ -101,7 +115,9 @@ namespace Questao5.Infrastructure.Database
                     ChaveIdempotencia = request.IdentificacaoRequisiacao,
                     Requisicao = JsonConvert.SerializeObject(request),
                     Resultado = JsonConvert.SerializeObject(response)
-                }, transaction: transaction);
+                },
+                transaction: transaction,
+                cancellationToken: cancellationToken));
 
 
                 transaction.Commit();
